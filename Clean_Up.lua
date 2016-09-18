@@ -2,7 +2,7 @@ local self = CreateFrame'Frame'
 self:Hide()
 self:SetScript('OnUpdate', function() this:UPDATE() end)
 self:SetScript('OnEvent', function() this[event](this) end)
-for _, event in {'ADDON_LOADED', 'PLAYER_LOGIN', 'MERCHANT_SHOW', 'MERCHANT_CLOSED'} do
+for _, event in { 'ADDON_LOADED', 'PLAYER_LOGIN', 'MERCHANT_SHOW', 'MERCHANT_CLOSED' } do
 	self:RegisterEvent(event)
 end
 
@@ -14,15 +14,15 @@ Clean_Up_Settings = {
 }
 
 self.bags = {
-	containers = {0, 1, 2, 3, 4},
+	containers = { 0, 1, 2, 3, 4 },
 	tooltip = 'Clean Up Bags',
 }
 self.bank = {
-	containers = {-1, 5, 6, 7, 8, 9, 10},
+	containers = { -1, 5, 6, 7, 8, 9, 10 },
 	tooltip = 'Clean Up Bank',
 }
 
-self.ITEM_TYPES = {GetAuctionItemClasses()}
+self.ITEM_TYPES = { GetAuctionItemClasses() }
 
 function self:Present(...)
 	local called
@@ -39,11 +39,11 @@ function self:ItemTypeKey(itemClass)
 end
 
 function self:ItemSubTypeKey(itemClass, itemSubClass)
-	return self:Key({GetAuctionItemSubClasses(self:ItemTypeKey(itemClass))}, itemClass) or 0
+	return self:Key({ GetAuctionItemSubClasses(self:ItemTypeKey(itemClass)) }, itemClass) or 0
 end
 
 function self:ItemInvTypeKey(itemClass, itemSubClass, itemSlot)
-	return self:Key({GetAuctionInvTypes(self:ItemTypeKey(itemClass), self:ItemSubTypeKey(itemSubClass))}, itemSlot) or 0
+	return self:Key({ GetAuctionInvTypes(self:ItemTypeKey(itemClass), self:ItemSubTypeKey(itemSubClass)) }, itemSlot) or 0
 end
 
 function self.ADDON_LOADED()
@@ -51,74 +51,23 @@ function self.ADDON_LOADED()
 		return
 	end
 
-	self.CLASSES = {
-		-- arrow
-		{
-			containers = {2101, 5439, 7278, 11362, 3573, 3605, 7371, 8217, 2662, 19319, 18714},
-			items = self:Set(2512, 2515, 3030, 3464, 9399, 11285, 12654, 18042, 19316),
-		},
-		
-		-- bullet
-		{
-			containers = {2102, 5441, 7279, 11363, 3574, 3604, 7372, 8218, 2663, 19320},
-			items = self:Set(2516, 2519, 3033, 3465, 4960, 5568, 8067, 8068, 8069, 10512, 10513, 11284, 11630, 13377, 15997, 19317),
-		},
-
-		-- soul
-		{
-			containers = {22243, 22244, 21340, 21341, 21342},
-			items = self:Set(6265),
-		},
-
-		-- ench
-		{
-			containers = {22246, 22248, 22249},
-			items = self:Set(
-				-- dust
-				10940, 11083, 11137, 11176, 16204,
-				-- essence
-				10938, 10939, 10998, 11082, 11134, 11135, 11174, 11175, 16202, 16203,
-				--shard
-				10978, 11084, 11138, 11139, 11177, 11178, 14343, 14344,
-				-- crystal
-				20725,
-				--rod
-				6218, 6339, 11130, 11145, 16207
-			),
-		},
-
-		-- herb
-		{
-			containers = {22250, 22251, 22252},
-			items = self:Set(765, 785, 2447, 2449, 2450, 2452, 2453, 3355, 3356, 3357, 3358, 3369, 3818, 3819, 3820, 3821, 4625, 8831, 8836, 8838, 8839, 8845, 8846, 13463, 13464, 13465, 13466, 13467, 13468),
-		},
-	}
-
 	self.MOUNT = self:Set(
 		-- rams
 		5864, 5872, 5873, 18785, 18786, 18787, 18244, 19030, 13328, 13329,
-
 		-- horses
 		2411, 2414, 5655, 5656, 18778, 18776, 18777, 18241, 12353, 12354,
-
 		-- sabers
 		8629, 8631, 8632, 18766, 18767, 18902, 18242, 13086, 19902, 12302, 12303, 8628, 12326,
-
 		-- mechanostriders
 		8563, 8595, 13321, 13322, 18772, 18773, 18774, 18243, 13326, 13327,
-
 		-- kodos
 		15277, 15290, 18793, 18794, 18795, 18247, 15292, 15293,
-
 		-- wolves
 		1132, 5665, 5668, 18796, 18797, 18798, 18245, 12330, 12351,
-
 		-- raptors
 		8588, 8591, 8592, 18788, 18789, 18790, 18246, 19872, 8586, 13317,
-
 		-- undead horses
 		13331, 13332, 13333, 13334, 18791, 18248, 13335,
-
 		-- qiraji battle tanks
 		21218, 21321, 21323, 21324, 21176
 	)
@@ -128,6 +77,49 @@ function self.ADDON_LOADED()
 	self.KEY = self:Set(9240, 17191, 13544, 12324, 16309, 12384, 20402)
 
 	self.TOOL = self:Set(7005, 12709, 19727, 5956, 2901, 6219, 10498, 6218, 6339, 11130, 11145, 16207, 9149, 15846, 6256, 6365, 6367)
+
+	self.ENCHANTING_REAGENT = self:Set(
+		-- dust
+		10940, 11083, 11137, 11176, 16204,
+		-- essence
+		10938, 10939, 10998, 11082, 11134, 11135, 11174, 11175, 16202, 16203,
+		-- shard
+		10978, 11084, 11138, 11139, 11177, 11178, 14343, 14344,
+		-- crystal
+		20725
+	)
+
+	self.CLASSES = {
+		-- arrow
+		{
+			containers = { 2101, 5439, 7278, 11362, 3573, 3605, 7371, 8217, 2662, 19319, 18714 },
+			items = self:Set(2512, 2515, 3030, 3464, 9399, 11285, 12654, 18042, 19316),
+		},
+		-- bullet
+		{
+			containers = { 2102, 5441, 7279, 11363, 3574, 3604, 7372, 8218, 2663, 19320 },
+			items = self:Set(2516, 2519, 3033, 3465, 4960, 5568, 8067, 8068, 8069, 10512, 10513, 11284, 11630, 13377, 15997, 19317),
+		},
+		-- soul
+		{
+			containers = { 22243, 22244, 21340, 21341, 21342 },
+			items = self:Set(6265),
+		},
+		-- ench
+		{
+			containers = { 22246, 22248, 22249 },
+			items = self:union(
+				self.ENCHANTING_REAGENT,
+				-- rods
+				self:Set(6218, 6339, 11130, 11145, 16207)
+			),
+		},
+		-- herb
+		{
+			containers = { 22250, 22251, 22252 },
+			items = self:Set(765, 785, 2447, 2449, 2450, 2452, 2453, 3355, 3356, 3357, 3358, 3369, 3818, 3819, 3820, 3821, 4625, 8831, 8836, 8838, 8839, 8845, 8846, 13463, 13464, 13465, 13466, 13467, 13468),
+		},
+	}
 
 	self:SetupSlash()
 
@@ -145,7 +137,7 @@ function self:PLAYER_LOGIN()
 			for item in self:Present(self:Item(container, position)) do
 				local slotKey = self:SlotKey(container, position)
 				Clean_Up_Settings.assignments[slotKey] = item
-				self:Log(slotKey..' assigned to '..item)
+				self:Print(slotKey .. ' assigned to ' .. item)
 			end
 		else
 			self.PickupContainerItem(unpack(arg))
@@ -161,14 +153,14 @@ function self:PLAYER_LOGIN()
 			if IsAltKeyDown() then
 				if Clean_Up_Settings.assignments[slot] then
 					Clean_Up_Settings.assignments[slot] = nil
-					self:Log(slot..' freed')
+					self:Print(slot .. ' freed')
 				end
 			else
 				if lastTime and GetTime() - lastTime < .5 and slot == lastSlot then
 					containers = self:Set(unpack(self.bags.containers))[container] and self.bags.containers or self.bank.containers
 					local link = GetContainerItemLink(container, position)
 					for _, container in containers do
-						for position=1,GetContainerNumSlots(container) do
+						for position = 1, GetContainerNumSlots(container) do
 							if self:SlotKey(container, position) ~= slot and GetContainerItemLink(container, position) == link then
 								arg[1], arg[2] = container, position
 								self.UseContainerItem(unpack(arg))
@@ -207,13 +199,13 @@ function self:MERCHANT_CLOSED()
 	self.atMerchant = false
 end
 
-function self:Log(msg)
-	DEFAULT_CHAT_FRAME:AddMessage(LIGHTYELLOW_FONT_COLOR_CODE..'[Clean Up] '..msg)
+function self:Print(msg)
+	DEFAULT_CHAT_FRAME:AddMessage(LIGHTYELLOW_FONT_COLOR_CODE .. '[Clean Up] ' .. msg)
 end
 
 function self:Set(...)
 	local t = {}
-	for i=1,arg.n do
+	for i = 1, arg.n do
 		t[arg[i]] = true
 	end
 	return t
@@ -261,11 +253,11 @@ function self:SetupSlash()
     SLASH_CLEANUPREVERSE1 = '/cleanupreverse'
     function SlashCmdList.CLEANUPREVERSE(arg)
         Clean_Up_Settings.reversed = not Clean_Up_Settings.reversed
-        self:Log('Sort order: '..(Clean_Up_Settings.reversed and 'Reversed' or 'Standard'))
+        self:Print('Sort order: ' .. (Clean_Up_Settings.reversed and 'Reversed' or 'Standard'))
 	end
 end
 
-function self:CreateBrushButton(parent)
+function self:BrushButton(parent)
 	local button = CreateFrame('Button', nil, parent)
 	button:SetWidth(28)
 	button:SetHeight(26)
@@ -281,45 +273,9 @@ function self:CreateBrushButton(parent)
 	return button
 end
 
-function self:CreateButtonPlacer()
-	local frame = CreateFrame('Button', nil, UIParent)
-	self.buttonPlacer = frame
-	frame:SetFrameStrata'FULLSCREEN_DIALOG'
-	frame:SetAllPoints()
-	frame:Hide()
-
-	local escapeInterceptor = CreateFrame('EditBox', nil, frame)
-	escapeInterceptor:SetScript('OnEscapePressed', function() frame:Hide() end)
-
-	local buttonPreview = self:CreateBrushButton(frame)
-	buttonPreview:EnableMouse(false)
-	buttonPreview:SetAlpha(.5)
-
-	frame:SetScript('OnShow', function() escapeInterceptor:SetFocus() end)
-	frame:SetScript('OnClick', function() this:EnableMouse(false) end)
-	frame:SetScript('OnUpdate', function()
-		local scale, x, y = buttonPreview:GetEffectiveScale(), GetCursorPosition()
-		buttonPreview:SetPoint('CENTER', UIParent, 'BOTTOMLEFT', x/scale, y/scale)
-		if not this:IsMouseEnabled() and GetMouseFocus() then
-			local parent = GetMouseFocus()
-			local parentScale, parentX, parentY = parent:GetEffectiveScale(), parent:GetCenter()
-			Clean_Up_Settings[this.key] = {parent=parent:GetName(), position={x/parentScale-parentX, y/parentScale-parentY}}
-			self:UpdateButton(this.key)
-			this:EnableMouse(true)
-			this:Hide()
-		end
-	end)
-end
-
-function self:UpdateButton(key)
-	local button, settings = self[key].button, Clean_Up_Settings[key]
-	button:SetParent(settings.parent)
-	button:SetPoint('CENTER', unpack(settings.position))
-end
-
 function self:CreateButton(key)
 	local settings = Clean_Up_Settings[key]
-	local button = self:CreateBrushButton()
+	local button = self:BrushButton()
 	self[key].button = button
 	button:SetScript('OnUpdate', function()
 		if settings.parent and getglobal(settings.parent) then
@@ -338,6 +294,43 @@ function self:CreateButton(key)
 	end)
 	button:SetScript('OnLeave', function()
 		GameTooltip:Hide()
+	end)
+end
+
+function self:UpdateButton(key)
+	local button, settings = self[key].button, Clean_Up_Settings[key]
+	button:SetParent(settings.parent)
+	button:SetPoint('CENTER', unpack(settings.position))
+	button:Show()
+end
+
+function self:CreateButtonPlacer()
+	local frame = CreateFrame('Button', nil, UIParent)
+	self.buttonPlacer = frame
+	frame:SetFrameStrata'FULLSCREEN_DIALOG'
+	frame:SetAllPoints()
+	frame:Hide()
+
+	local escapeInterceptor = CreateFrame('EditBox', nil, frame)
+	escapeInterceptor:SetScript('OnEscapePressed', function() frame:Hide() end)
+
+	local buttonPreview = self:BrushButton(frame)
+	buttonPreview:EnableMouse(false)
+	buttonPreview:SetAlpha(.5)
+
+	frame:SetScript('OnShow', function() escapeInterceptor:SetFocus() end)
+	frame:SetScript('OnClick', function() this:EnableMouse(false) end)
+	frame:SetScript('OnUpdate', function()
+		local scale, x, y = buttonPreview:GetEffectiveScale(), GetCursorPosition()
+		buttonPreview:SetPoint('CENTER', UIParent, 'BOTTOMLEFT', x/scale, y/scale)
+		if not this:IsMouseEnabled() and GetMouseFocus() then
+			local parent = GetMouseFocus()
+			local parentScale, parentX, parentY = parent:GetEffectiveScale(), parent:GetCenter()
+			Clean_Up_Settings[this.key] = { parent=parent:GetName(), position={ x/parentScale-parentX, y/parentScale-parentY } }
+			self:UpdateButton(this.key)
+			this:EnableMouse(true)
+			this:Hide()
+		end
 	end)
 end
 
@@ -370,7 +363,7 @@ function self:Move(src, dst)
 end
 
 function self:TooltipInfo(container, position)
-	local chargesPattern = '^'..gsub(gsub(ITEM_SPELL_CHARGES_P1, '%%d', '(%%d+)'), '%%%d+%$d', '(%%d+)')..'$'
+	local chargesPattern = '^' .. gsub(gsub(ITEM_SPELL_CHARGES_P1, '%%d', '(%%d+)'), '%%%d+%$d', '(%%d+)') .. '$'
 
 	Clean_Up_Tooltip:SetOwner(self, ANCHOR_NONE)
 	Clean_Up_Tooltip:ClearLines()
@@ -382,13 +375,13 @@ function self:TooltipInfo(container, position)
 	end
 
 	local charges, usable, soulbound, quest, conjured
-	for i=1,Clean_Up_Tooltip:NumLines() do
+	for i = 1, Clean_Up_Tooltip:NumLines() do
 		local text = getglobal('Clean_Up_TooltipTextLeft'..i):GetText()
 
 		local _, _, chargeString = strfind(text, chargesPattern)
 		if chargeString then
 			charges = tonumber(chargeString)
-		elseif strfind(text, '^'..ITEM_SPELL_TRIGGER_ONUSE) then
+		elseif strfind(text, '^' .. ITEM_SPELL_TRIGGER_ONUSE) then
 			usable = true
 		elseif text == ITEM_SOULBOUND then
 			soulbound = true
@@ -404,7 +397,7 @@ end
 
 function self:Trash(container, position)
 	for itemID in string.gfind(GetContainerItemLink(container, position) or '', 'item:(%d+)') do
-		if ({GetItemInfo(itemID)})[3] == 0 then
+		if ({ GetItemInfo(itemID) })[3] == 0 then
 			return true
 		end
 	end
@@ -414,7 +407,7 @@ function self:SellTrash()
 	local found
 	if self.atMerchant then
 		for _, container in self.bags.containers do
-			for position=1,GetContainerNumSlots(container) do
+			for position = 1, GetContainerNumSlots(container) do
 				if self:Trash(container, position) then
 					found = true
 					UseContainerItem(container, position)
@@ -424,49 +417,6 @@ function self:SellTrash()
 	end
 	return found
 end
-
--- do
--- 	local mapping = {}
--- 	function self:ResolvePosition(bag, slot)
--- 		for position in self:Present(mapping[bag..':'..slot]) do
--- 			return unpack(position)
--- 		end
--- 		return bag, slot
--- 	end
-
--- 	local function key(slot)
--- 		return slot.container..':'..slot.position
--- 	end
-
--- 	self._GetContainerItemInfo = GetContainerItemInfo
--- 	function GetContainerItemInfo(bag, slot, ...)
--- 		bag, slot = self:ResolvePosition(bag, slot)
--- 		return self._GetContainerItemInfo(bag, slot, unpack(arg))
--- 	end
-
--- 	function self:Swap(slot1, slot2)
--- 		slot1.state, slot2.state = slot2.state, slot1.state
--- 		mapping[key(slot1)], mapping[key(slot2)] = {self:ResolvePosition(slot2.container, slot2.position)}, {self:ResolvePosition(slot1.container, slot1.position)}
--- 	end
-
--- 	function self:Sort()
--- 		local complete = true
-
--- 		for _, dst in self.model do
--- 			if dst.item and (dst.state.item ~= dst.item or dst.state.count < dst.count) then
--- 				complete = false
-
--- 				for _, src in self.model do
--- 					if src.state.item == dst.item and src.state.count == dst.count and not (src.item and src.state.item == src.item and src.state.count == src.count) then
--- 						self:Swap(src, dst)
--- 					end
--- 				end
--- 			end
--- 		end
-
--- 		return complete
--- 	end
--- end
 
 function self:Sort()
 	local complete = true
@@ -582,12 +532,12 @@ do
 
 		for _, container in self.containers do
 			local class = self:Class(container)
-			for position=1,GetContainerNumSlots(container) do
-				local slot = {container=container, position=position, class=class}
+			for position = 1, GetContainerNumSlots(container) do
+				local slot = { container=container, position=position, class=class }
 				local item = self:Item(container, position)
 				if item then
 					local _, count = GetContainerItemInfo(container, position)
-					slot.state = {item=item, count=count}
+					slot.state = { item=item, count=count }
 					counts[item] = (counts[item] or 0) + count
 				else
 					slot.state = {}
@@ -629,7 +579,7 @@ do
 	local cache = {}
 
 	function self:Info(item)
-		return setmetatable({}, {__index=cache[item]})
+		return setmetatable({}, { __index=cache[item] })
 	end
 
 	function self:Item(container, position)
@@ -673,39 +623,44 @@ do
 				elseif soulbound then
 					tinsert(sortKey, 6)
 
-				-- reagents
+				-- enchanting reagents
+				elseif self.ENCHANTING_REAGENT[itemID] then
+					tinsert(sort_key, 7)
+
+				-- other reagents
 				elseif type == self.ITEM_TYPES[9] then
-					tinsert(sortKey, 7)
+					tinsert(sort_key, 8)
 
 				-- quest items
 				elseif quest then
-					tinsert(sortKey, 9)
+					tinsert(sort_key, 10)
 
 				-- consumables
 				elseif usable and type ~= self.ITEM_TYPES[1] and type ~= self.ITEM_TYPES[2] and type ~= self.ITEM_TYPES[8] or type == self.ITEM_TYPES[4] then
-					tinsert(sortKey, 8)
+					tinsert(sort_key, 9)
 
 				-- higher quality
 				elseif quality > 1 then
-					tinsert(sortKey, 10)
+					tinsert(sort_key, 11)
 
 				-- common quality
 				elseif quality == 1 then
-					tinsert(sortKey, 11)
+					tinsert(sort_key, 12)
 
 				-- junk
 				elseif quality == 0 then
-					tinsert(sortKey, 12)
+					tinsert(sort_key, 13)
 				end
 				
-				tinsert(sortKey, self:ItemTypeKey(type))
-				tinsert(sortKey, self:ItemInvTypeKey(type, subType, invType))
-				tinsert(sortKey, self:ItemSubTypeKey(type, subType))
-				tinsert(sortKey, itemID)
-				tinsert(sortKey, 1/charges)
-				tinsert(sortKey, suffixID)
-				tinsert(sortKey, enchantID)
-				tinsert(sortKey, uniqueID)
+				tinsert(sort_key, self:ItemTypeKey(type))
+				tinsert(sort_key, self:ItemInvTypeKey(type, subType, invType))
+				tinsert(sort_key, self:ItemSubTypeKey(type, subType))
+				tinsert(sort_key, -quality)
+				tinsert(sort_key, itemID)
+				tinsert(sort_key, -charges)
+				tinsert(sort_key, suffixID)
+				tinsert(sort_key, enchantID)
+				tinsert(sort_key, uniqueID)
 
 				cache[key] = {
 					stack = stack,
