@@ -155,7 +155,7 @@ function self:PLAYER_LOGIN()
 			for item in self:Present(self:Item(container, position)) do
 				local slotKey = self:SlotKey(container, position)
 				Clean_Up_Settings.assignments[slotKey] = item
-				self:Print(slotKey .. ' assigned to ' .. item)
+				self:Print(slotKey .. ' assigned to ' .. GetContainerItemLink(container, position))
 			end
 		else
 			self.PickupContainerItem(unpack(arg))
@@ -168,41 +168,15 @@ function self:PLAYER_LOGIN()
 		function UseContainerItem(...)
 			local container, position = unpack(arg)
 			local slot = self:SlotKey(container, position)
-			if IsAltKeyDown() then
-				if Clean_Up_Settings.assignments[slot] then
-					Clean_Up_Settings.assignments[slot] = nil
-					self:Print(slot .. ' freed')
-				end
-			else
-				if lastTime and GetTime() - lastTime < .5 and slot == lastSlot then
-					containers = set(unpack(self.bags.containers))[container] and self.bags.containers or self.bank.containers
-					local link = GetContainerItemLink(container, position)
-					for _, container in containers do
-						for position = 1, GetContainerNumSlots(container) do
-							if self:SlotKey(container, position) ~= slot and GetContainerItemLink(container, position) == link then
-								arg[1], arg[2] = container, position
-								self.UseContainerItem(unpack(arg))
-							end
-						end
-					end
-				end
-				lastTime = GetTime()
-            	lastSlot = slot
-				self.UseContainerItem(unpack(arg))
+			if Clean_Up_Settings.assignments[slot] and IsAltKeyDown() then
+				Clean_Up_Settings.assignments[slot] = nil
+				self:Print(slot .. ' freed')
 			end
 		end
 	end
 end
 
 function self:UPDATE()
-	if self.containers == self.bags.containers and not self.model then
-		if self:SellTrash() then
-			return
-		end
-	end
-	if not self.model then
-		self:CreateModel()
-	end
 	if self:Sort() then
 		self:Hide()
 	end
@@ -405,29 +379,6 @@ function self:TooltipInfo(container, position)
 	return charges or 1, usable, soulbound, quest, conjured
 end
 
-function self:Trash(container, position)
-	for itemID in string.gfind(GetContainerItemLink(container, position) or '', 'item:(%d+)') do
-		if ({ GetItemInfo(itemID) })[3] == 0 then
-			return true
-		end
-	end
-end
-
-function self:SellTrash()
-	local found
-	if self.atMerchant then
-		for _, container in self.bags.containers do
-			for position = 1, GetContainerNumSlots(container) do
-				if self:Trash(container, position) then
-					found = true
-					UseContainerItem(container, position)
-				end
-			end
-		end
-	end
-	return found
-end
-
 function self:Sort()
 	local complete = true
 
@@ -475,7 +426,7 @@ end
 
 function self:Go(key)
 	self.containers = self[key].containers
-	self.model = nil
+	self:CreateModel()
 	self:Show()
 end
 
