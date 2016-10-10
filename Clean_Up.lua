@@ -2,7 +2,7 @@ local self = CreateFrame'Frame'
 self:Hide()
 self:SetScript('OnUpdate', function() this:UPDATE() end)
 self:SetScript('OnEvent', function() this[event](this) end)
-for _, event in { 'ADDON_LOADED', 'PLAYER_LOGIN', 'MERCHANT_SHOW', 'MERCHANT_CLOSED' } do
+for _, event in { 'ADDON_LOADED', 'MERCHANT_SHOW', 'MERCHANT_CLOSED' } do
 	self:RegisterEvent(event)
 end
 
@@ -139,41 +139,44 @@ function self.ADDON_LOADED()
 		return
 	end
 
+	do
+		local orig = PickupContainerItem
+		function PickupContainerItem(...)
+			local container, position = unpack(arg)
+			if IsAltKeyDown() then
+				for item in self:Present(self:Item(container, position)) do
+					local slotKey = self:SlotKey(container, position)
+					Clean_Up_Settings.assignments[slotKey] = item
+					self:Print(slotKey .. ' assigned to ' .. GetContainerItemLink(container, position))
+				end
+			else
+				orig(unpack(arg))
+			end
+		end
+	end
+    do
+        local lastTime, lastSlot
+		local orig = UseContainerItem
+		function UseContainerItem(...)
+			local container, position = unpack(arg)
+			local slot = self:SlotKey(container, position)
+			if IsAltKeyDown() then
+				if Clean_Up_Settings.assignments[slot] then
+					Clean_Up_Settings.assignments[slot] = nil
+					self:Print(slot .. ' freed')
+				end
+			else
+				orig(unpack(arg))
+			end
+		end
+	end
+
 	self:SetupSlash()
 
 	CreateFrame('GameTooltip', 'Clean_Up_Tooltip', nil, 'GameTooltipTemplate')
 	self:CreateButtonPlacer()
 	self:CreateButton'bags'
 	self:CreateButton'bank'
-end
-
-function self:PLAYER_LOGIN()
-	self.PickupContainerItem = PickupContainerItem
-	function PickupContainerItem(...)
-		local container, position = unpack(arg)
-		if IsAltKeyDown() then
-			for item in self:Present(self:Item(container, position)) do
-				local slotKey = self:SlotKey(container, position)
-				Clean_Up_Settings.assignments[slotKey] = item
-				self:Print(slotKey .. ' assigned to ' .. GetContainerItemLink(container, position))
-			end
-		else
-			self.PickupContainerItem(unpack(arg))
-		end
-	end
-
-    do
-        local lastTime, lastSlot
-		self.UseContainerItem = UseContainerItem
-		function UseContainerItem(...)
-			local container, position = unpack(arg)
-			local slot = self:SlotKey(container, position)
-			if Clean_Up_Settings.assignments[slot] and IsAltKeyDown() then
-				Clean_Up_Settings.assignments[slot] = nil
-				self:Print(slot .. ' freed')
-			end
-		end
-	end
 end
 
 function self:UPDATE()
