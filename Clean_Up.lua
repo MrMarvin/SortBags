@@ -418,9 +418,9 @@ end
 
 function Stack()
 	for _, src in model do
-		if src.state.item and src.state.count < Info(src.state.item).stack then
+		if src.state.item and src.state.count < Info(src.state.item).stack and src.state.item ~= src.item then
 			for _, dst in model do
-				if dst ~= src and dst.state.item and dst.state.item == src.state.item and dst.state.count < Info(dst.state.item).stack then
+				if dst ~= src and dst.state.item and dst.state.item == src.state.item and dst.state.count < Info(dst.state.item).stack and dst.state.item ~= dst.item  then
 					Move(src, dst)
 				end
 			end
