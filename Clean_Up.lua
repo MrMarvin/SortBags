@@ -323,10 +323,10 @@ function CreateButtonPlacer()
 end
 
 function Move(src, dst)
-    local _, _, srcLocked = GetContainerItemInfo(src.container, src.position)
+    local texture, _, srcLocked = GetContainerItemInfo(src.container, src.position)
     local _, _, dstLocked = GetContainerItemInfo(dst.container, dst.position)
     
-	if not srcLocked and not dstLocked then
+	if texture and not srcLocked and not dstLocked then
 		ClearCursor()
        	PickupContainerItem(src.container, src.position)
 		PickupContainerItem(dst.container, dst.position)
