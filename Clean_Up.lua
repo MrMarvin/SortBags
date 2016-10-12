@@ -338,7 +338,7 @@ function Move(src, dst)
 				local count = min(src.state.count, Info(dst.state.item).stack - dst.state.count)
 				src.state.count = src.state.count - count
 				dst.state.count = dst.state.count + count
-				if src.count == 0 then
+				if src.state.count == 0 then
 					src.state.item = nil
 				end
 			else
@@ -421,6 +421,7 @@ function Stack()
 		if src.state.item and src.state.count < Info(src.state.item).stack then
 			for _, dst in model do
 				if dst ~= src and dst.state.item and dst.state.item == src.state.item and dst.state.count < Info(dst.state.item).stack then
+					p(src.state.count, dst.state.count)
 					Move(src, dst)
 				end
 			end
