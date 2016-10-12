@@ -331,19 +331,15 @@ function Move(src, dst)
        	PickupContainerItem(src.container, src.position)
 		PickupContainerItem(dst.container, dst.position)
 
-	    local _, _, srcLocked = GetContainerItemInfo(src.container, src.position)
-	    local _, _, dstLocked = GetContainerItemInfo(dst.container, dst.position)
-    	if srcLocked or dstLocked then
-			if src.state.item == dst.state.item then
-				local count = min(src.state.count, Info(dst.state.item).stack - dst.state.count)
-				src.state.count = src.state.count - count
-				dst.state.count = dst.state.count + count
-				if src.state.count == 0 then
-					src.state.item = nil
-				end
-			else
-				src.state, dst.state = dst.state, src.state
+		if src.state.item == dst.state.item then
+			local count = min(src.state.count, Info(dst.state.item).stack - dst.state.count)
+			src.state.count = src.state.count - count
+			dst.state.count = dst.state.count + count
+			if src.state.count == 0 then
+				src.state.item = nil
 			end
+		else
+			src.state, dst.state = dst.state, src.state
 		end
 
 		return true
@@ -420,7 +416,7 @@ function Stack()
 	for _, src in model do
 		if src.state.item and src.state.count < Info(src.state.item).stack and src.state.item ~= src.item then
 			for _, dst in model do
-				if dst ~= src and dst.state.item and dst.state.item == src.state.item and dst.state.count < Info(dst.state.item).stack and dst.state.item ~= dst.item  then
+				if dst ~= src and dst.state.item and dst.state.item == src.state.item and dst.state.count < Info(dst.state.item).stack and dst.state.item ~= dst.item then
 					Move(src, dst)
 				end
 			end
