@@ -148,7 +148,7 @@ function ADDON_LOADED()
 				for item in Present(Item(container, position)) do
 					local slotKey = SlotKey(container, position)
 					Clean_Up_Settings.assignments[slotKey] = item
-					Print(slotKey..' assigned to '..GetContainerItemLink(container, position))
+					Print(slotKey .. ' assigned to ' .. GetContainerItemLink(container, position))
 				end
 			else
 				orig(unpack(arg))
@@ -164,7 +164,7 @@ function ADDON_LOADED()
 			if IsAltKeyDown() then
 				if Clean_Up_Settings.assignments[slot] then
 					Clean_Up_Settings.assignments[slot] = nil
-					Print(slot..' freed')
+					Print(slot .. ' freed')
 				end
 			else
 				orig(unpack(arg))
@@ -196,7 +196,7 @@ function MERCHANT_CLOSED()
 end
 
 function Print(msg)
-	DEFAULT_CHAT_FRAME:AddMessage(LIGHTYELLOW_FONT_COLOR_CODE..'[Clean Up] '..msg)
+	DEFAULT_CHAT_FRAME:AddMessage(LIGHTYELLOW_FONT_COLOR_CODE .. '[Clean Up] ' .. msg)
 end
 
 function LT(a, b)
@@ -222,7 +222,7 @@ function Key(table, value)
 end
 
 function SlotKey(container, position)
-	return container..':'..position
+	return container .. ':' .. position
 end
 
 function SetupSlash()
@@ -241,7 +241,7 @@ function SetupSlash()
     _G.SLASH_CLEANUPREVERSE1 = '/cleanupreverse'
     function _G.SlashCmdList.CLEANUPREVERSE(arg)
         Clean_Up_Settings.reversed = not Clean_Up_Settings.reversed
-        Print('Sort order: '..(Clean_Up_Settings.reversed and 'Reversed' or 'Standard'))
+        Print('Sort order: ' .. (Clean_Up_Settings.reversed and 'Reversed' or 'Standard'))
 	end
 end
 
@@ -347,7 +347,7 @@ function Move(src, dst)
 end
 
 function TooltipInfo(container, position)
-	local chargesPattern = '^'..gsub(gsub(ITEM_SPELL_CHARGES_P1, '%%d', '(%%d+)'), '%%%d+%$d', '(%%d+)')..'$'
+	local chargesPattern = '^' .. gsub(gsub(ITEM_SPELL_CHARGES_P1, '%%d', '(%%d+)'), '%%%d+%$d', '(%%d+)') .. '$'
 
 	Clean_Up_Tooltip:SetOwner(_F, ANCHOR_NONE)
 	Clean_Up_Tooltip:ClearLines()
@@ -360,12 +360,12 @@ function TooltipInfo(container, position)
 
 	local charges, usable, soulbound, quest, conjured
 	for i = 1, Clean_Up_Tooltip:NumLines() do
-		local text = getglobal('Clean_Up_TooltipTextLeft'..i):GetText()
+		local text = getglobal('Clean_Up_TooltipTextLeft' .. i):GetText()
 
 		local _, _, chargeString = strfind(text, chargesPattern)
 		if chargeString then
 			charges = tonumber(chargeString)
-		elseif strfind(text, '^'..ITEM_SPELL_TRIGGER_ONUSE) then
+		elseif strfind(text, '^' .. ITEM_SPELL_TRIGGER_ONUSE) then
 			usable = true
 		elseif text == ITEM_SOULBOUND then
 			soulbound = true
