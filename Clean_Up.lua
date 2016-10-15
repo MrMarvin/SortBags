@@ -1,8 +1,8 @@
-local _G, _E, _F = getfenv(0), {}, CreateFrame'Frame'
-setfenv(1, setmetatable(_E, {__index=_G}))
+local _G, _M, _F = getfenv(0), {}, CreateFrame'Frame'
+setfenv(1, setmetatable(_M, {__index=_G}))
 _F:Hide()
-_F:SetScript('OnUpdate', function() _E.UPDATE() end)
-_F:SetScript('OnEvent', function() _E[event](this) end)
+_F:SetScript('OnUpdate', function() _M.UPDATE() end)
+_F:SetScript('OnEvent', function() _M[event](this) end)
 for _, event in {'ADDON_LOADED', 'MERCHANT_SHOW', 'MERCHANT_CLOSED'} do
 	_F:RegisterEvent(event)
 end
@@ -264,7 +264,7 @@ end
 function CreateButton(key)
 	local settings = Clean_Up_Settings[key]
 	local button = BrushButton()
-	_E[key].button = button
+	_M[key].button = button
 	button:SetScript('OnUpdate', function()
 		if settings.parent and getglobal(settings.parent) then
 			UpdateButton(key)
@@ -277,7 +277,7 @@ function CreateButton(key)
 	end)
 	button:SetScript('OnEnter', function()
 		GameTooltip:SetOwner(this)
-		GameTooltip:AddLine(_E[key].tooltip)
+		GameTooltip:AddLine(_M[key].tooltip)
 		GameTooltip:Show()
 	end)
 	button:SetScript('OnLeave', function()
@@ -286,7 +286,7 @@ function CreateButton(key)
 end
 
 function UpdateButton(key)
-	local button, settings = _E[key].button, Clean_Up_Settings[key]
+	local button, settings = _M[key].button, Clean_Up_Settings[key]
 	button:SetParent(settings.parent)
 	button:SetPoint('CENTER', unpack(settings.position))
 	button:Show()
@@ -425,7 +425,7 @@ function Stack()
 end
 
 function Go(key)
-	containers = _E[key].containers
+	containers = _M[key].containers
 	CreateModel()
 	_F:Show()
 end
