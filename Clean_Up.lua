@@ -349,7 +349,7 @@ end
 function TooltipInfo(container, position)
 	local chargesPattern = '^' .. gsub(gsub(ITEM_SPELL_CHARGES_P1, '%%d', '(%%d+)'), '%%%d+%$d', '(%%d+)') .. '$'
 
-	Clean_Up_Tooltip:SetOwner(_F, ANCHOR_NONE)
+	Clean_Up_Tooltip:SetOwner(UIParent, 'ANCHOR_NONE')
 	Clean_Up_Tooltip:ClearLines()
 
 	if container == BANK_CONTAINER then
