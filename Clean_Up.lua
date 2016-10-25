@@ -346,7 +346,7 @@ function CreateButtonPlacer()
 	end)
 	frame:SetScript('OnEscapePressed', function() this:Hide() end)
 	frame:SetScript('OnMouseWheel', function()
-		this.scale = this.scale + arg1 * .05
+		this.scale = max(0, this.scale + arg1 * .05)
 		buttonPreview:SetScale(this.target:GetEffectiveScale() * this.scale)
 	end)
 	frame:SetScript('OnMouseDown', function()
