@@ -308,7 +308,7 @@ local strataOrder = {
 }
 
 function CreateButtonPlacer()
-	local frame = CreateFrame('EditBox', 'kekframe', UIParent)
+	local frame = CreateFrame('EditBox', nil, UIParent)
 	buttonPlacer = frame
 	frame:EnableMouseWheel(true)
 	frame:SetTextColor(0, 0, 0, 0)
@@ -332,6 +332,7 @@ function CreateButtonPlacer()
 					frame.target = f
 					targetMarker:SetAllPoints(f)
 					buttonPreview:SetScale(scale * this.scale)
+					RaidWarningFrame:AddMessage(f:GetName())
 					return f
 				end
 			end
