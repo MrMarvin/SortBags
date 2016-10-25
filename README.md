@@ -8,8 +8,13 @@ This addOn automatically stacks and sorts your items.
 
 ### Commands
 **/cleanupreverse** (Makes the sorting start at the top of your bags instead of the bottom)<br/>
-**/cleanupbags** (starts button placement mode. click to place, escape to cancel)<br/>
-**/cleanupbank** (starts button placement mode. click to place, escape to cancel)
+**/cleanupbags** (starts button placement mode)<br/>
+**/cleanupbank** (starts button placement mode)
+
+#### Button placement mode
+**Right-click** to iterate through the frames below the cursor to choose a parent for the button.
+**Scroll** to resize the button.
+**Left-click** to place the button.
 
 **Alt-left-click** on a bag item will permanently assign its slot to that item.<br/>
 **Alt-right-click** on a bag slot will clear its assignment.

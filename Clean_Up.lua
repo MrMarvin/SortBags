@@ -289,36 +289,79 @@ function UpdateButton(key)
 	local button, settings = _M[key].button, Clean_Up_Settings[key]
 	button:SetParent(settings.parent)
 	button:SetPoint('CENTER', unpack(settings.position))
+	button:SetScale(settings.scale)
 	button:Show()
 end
 
+
+local strataOrder = {
+	UNKNOWN = -1,
+	WORLD = 0,
+	BACKGROUND = 1,
+	LOW = 2,
+	MEDIUM = 3,
+	HIGH = 4,
+	DIALOG = 5,
+	FULLSCREEN = 6,
+	FULLSCREEN_DIALOG = 7,
+	TOOLTIP = 8,
+}
+
 function CreateButtonPlacer()
-	local frame = CreateFrame('Button', nil, UIParent)
+	local frame = CreateFrame('EditBox', 'kekframe', UIParent)
 	buttonPlacer = frame
+	frame:EnableMouseWheel(true)
+	frame:SetTextColor(0, 0, 0, 0)
 	frame:SetFrameStrata'FULLSCREEN_DIALOG'
 	frame:SetAllPoints()
 	frame:Hide()
-
-	local escapeInterceptor = CreateFrame('EditBox', nil, frame)
-	escapeInterceptor:SetScript('OnEscapePressed', function() frame:Hide() end)
+	local targetMarker = frame:CreateTexture()
+	targetMarker:SetTexture(1, 1, 0, .5)
 
 	local buttonPreview = BrushButton(frame)
 	buttonPreview:EnableMouse(false)
 	buttonPreview:SetAlpha(.5)
 
-	frame:SetScript('OnShow', function() escapeInterceptor:SetFocus() end)
-	frame:SetScript('OnClick', function() this:EnableMouse(false) end)
+	function TargetNext()
+		local f = frame.target
+		while true do
+			f = EnumerateFrames(f)
+			if f and f:GetName() and f:GetCenter() then
+				local scale, x, y = f:GetEffectiveScale(), GetCursorPosition()
+				if f:GetLeft() * scale <= x and f:GetRight() * scale >= x and f:GetBottom() * scale <= y and f:GetTop() * scale >= y then
+					frame.target = f
+					targetMarker:SetAllPoints(f)
+					buttonPreview:SetScale(scale * this.scale)
+					return f
+				end
+			end
+		end
+	end
+
+	frame:SetScript('OnShow', function()
+		this.scale = 1
+		this.target = nil
+		TargetNext()
+	end)
+	frame:SetScript('OnEscapePressed', function() this:Hide() end)
+	frame:SetScript('OnMouseWheel', function()
+		this.scale = this.scale + arg1 * .05
+		buttonPreview:SetScale(this.target:GetEffectiveScale() * this.scale)
+	end)
+	frame:SetScript('OnMouseDown', function()
+		if arg1 == 'LeftButton' then
+			this:Hide()
+			local x, y = GetCursorPosition()
+			local targetScale, targetX, targetY = this.target:GetEffectiveScale(), this.target:GetCenter()
+			Clean_Up_Settings[this.key] = {parent=this.target:GetName(), position={(x/targetScale-targetX)/this.scale, (y/targetScale-targetY)/this.scale}, scale=this.scale}
+			UpdateButton(this.key)
+		elseif arg1 == 'RightButton' then
+			this.target = TargetNext(this.target)
+		end
+	end)
 	frame:SetScript('OnUpdate', function()
 		local scale, x, y = buttonPreview:GetEffectiveScale(), GetCursorPosition()
 		buttonPreview:SetPoint('CENTER', UIParent, 'BOTTOMLEFT', x/scale, y/scale)
-		if not this:IsMouseEnabled() and GetMouseFocus() then
-			local parent = GetMouseFocus()
-			local parentScale, parentX, parentY = parent:GetEffectiveScale(), parent:GetCenter()
-			Clean_Up_Settings[this.key] = {parent=parent:GetName(), position={x/parentScale-parentX, y/parentScale-parentY}}
-			UpdateButton(this.key)
-			this:EnableMouse(true)
-			this:Hide()
-		end
 	end)
 end
 
