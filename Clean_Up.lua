@@ -195,6 +195,11 @@ function MERCHANT_CLOSED()
 	atMerchant = false
 end
 
+_F:SetScript('OnShow', function()
+	itemStacks, itemClasses, itemSortKeys = {}, {}, {}
+	CreateModel()
+end)
+
 function Print(msg)
 	DEFAULT_CHAT_FRAME:AddMessage(LIGHTYELLOW_FONT_COLOR_CODE .. '[Clean Up] ' .. msg)
 end
@@ -273,7 +278,8 @@ function CreateButton(key)
 	end)
 	button:SetScript('OnClick', function()
 		PlaySoundFile[[Interface\AddOns\Clean_Up\UI_BagSorting_01.ogg]]
-		Go(key)
+		containers = _M[key].containers
+		_F:Show()
 	end)
 	button:SetScript('OnEnter', function()
 		GameTooltip:SetOwner(this)
@@ -428,18 +434,18 @@ function Sort()
 	local complete = true
 
 	for _, dst in model do
-		if dst.target_item and (dst.item ~= dst.target_item or dst.count < dst.target_count) then
+		if dst.targetItem and (dst.item ~= dst.targetItem or dst.count < dst.targetCount) then
 			complete = false
 
 			local sources, rank = {}, {}
 
 			for _, src in model do
-				if src.item == dst.target_item
+				if src.item == dst.targetItem
 					and src ~= dst
 					and not (dst.item and src.class and src.class ~= ItemClass(dst.item))
-					and not (src.target_item and src.item == src.target_item and src.count <= src.target_count)
+					and not (src.targetItem and src.item == src.targetItem and src.count <= src.targetCount)
 				then
-					rank[src] = abs(src.count - dst.target_count + (dst.item == dst.target_item and dst.count or 0))
+					rank[src] = abs(src.count - dst.targetCount + (dst.item == dst.targetItem and dst.count or 0))
 					tinsert(sources, src)
 				end
 			end
@@ -459,20 +465,14 @@ end
 
 function Stack()
 	for _, src in model do
-		if src.item and src.count < ItemStack(src.item) and src.item ~= src.target_item then
+		if src.item and src.count < ItemStack(src.item) and src.item ~= src.targetItem then
 			for _, dst in model do
-				if dst ~= src and dst.item and dst.item == src.item and dst.count < ItemStack(dst.item) and dst.item ~= dst.target_item then
+				if dst ~= src and dst.item and dst.item == src.item and dst.count < ItemStack(dst.item) and dst.item ~= dst.targetItem then
 					Move(src, dst)
 				end
 			end
 		end
 	end
-end
-
-function Go(key)
-	containers = _M[key].containers
-	CreateModel()
-	_F:Show()
 end
 
 do
@@ -494,8 +494,8 @@ do
 			else
 				count = min(counts[item], ItemStack(item))
 			end
-			slot.target_item = item
-			slot.target_count = count
+			slot.targetItem = item
+			slot.targetCount = count
 			counts[item] = counts[item] - count
 			return true
 		end
@@ -589,8 +589,6 @@ function ContainerClass(container)
 end
 
 do
-	local itemStacks, itemClasses, itemSortKeys = {}, {}, {}
-
 	function ItemStack(key)
 		return itemStacks[key]
 	end
