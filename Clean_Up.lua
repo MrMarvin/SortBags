@@ -375,15 +375,16 @@ function Move(src, dst)
        	PickupContainerItem(src.container, src.position)
 		PickupContainerItem(dst.container, dst.position)
 
-		if src.state.item == dst.state.item then
-			local count = min(src.state.count, Info(dst.state.item).stack - dst.state.count)
-			src.state.count = src.state.count - count
-			dst.state.count = dst.state.count + count
-			if src.state.count == 0 then
-				src.state.item = nil
+		if src.item == dst.item then
+			local count = min(src.count, ItemStack(dst.item) - dst.count)
+			src.count = src.count - count
+			dst.count = dst.count + count
+			if src.count == 0 then
+				src.item = nil
 			end
 		else
-			src.state, dst.state = dst.state, src.state
+			src.item, dst.item = dst.item, src.item
+			src.count, dst.count = dst.count, src.count
 		end
 
 		return true
@@ -427,18 +428,18 @@ function Sort()
 	local complete = true
 
 	for _, dst in model do
-		if dst.item and (dst.state.item ~= dst.item or dst.state.count < dst.count) then
+		if dst.target_item and (dst.item ~= dst.target_item or dst.count < dst.target_count) then
 			complete = false
 
 			local sources, rank = {}, {}
 
 			for _, src in model do
-				if src.state.item == dst.item
+				if src.item == dst.target_item
 					and src ~= dst
-					and not (dst.state.item and src.class and src.class ~= Info(dst.state.item).class)
-					and not (src.item and src.state.item == src.item and src.state.count <= src.count)
+					and not (dst.item and src.class and src.class ~= ItemClass(dst.item))
+					and not (src.target_item and src.item == src.target_item and src.count <= src.target_count)
 				then
-					rank[src] = abs(src.state.count - dst.count + (dst.state.item == dst.item and dst.state.count or 0))
+					rank[src] = abs(src.count - dst.target_count + (dst.item == dst.target_item and dst.count or 0))
 					tinsert(sources, src)
 				end
 			end
@@ -458,9 +459,9 @@ end
 
 function Stack()
 	for _, src in model do
-		if src.state.item and src.state.count < Info(src.state.item).stack and src.state.item ~= src.item then
+		if src.item and src.count < ItemStack(src.item) and src.item ~= src.target_item then
 			for _, dst in model do
-				if dst ~= src and dst.state.item and dst.state.item == src.state.item and dst.state.count < Info(dst.state.item).stack and dst.state.item ~= dst.item then
+				if dst ~= src and dst.item and dst.item == src.item and dst.count < ItemStack(dst.item) and dst.item ~= dst.target_item then
 					Move(src, dst)
 				end
 			end
@@ -475,7 +476,7 @@ function Go(key)
 end
 
 do
-	local items, counts
+	local counts
 
 	local function insert(t, v)
 		if Clean_Up_Settings.reversed then
@@ -487,104 +488,119 @@ do
 
 	local function assign(slot, item)
 		if counts[item] > 0 then
-			local count = min(counts[item], Info(item).stack)
-			slot.item = item
-			slot.count = count
+			local count
+			if Clean_Up_Settings.reversed and mod(counts[item], ItemStack(item)) ~= 0 then
+				count = mod(counts[item], ItemStack(item))
+			else
+				count = min(counts[item], ItemStack(item))
+			end
+			slot.target_item = item
+			slot.target_count = count
 			counts[item] = counts[item] - count
 			return true
 		end
 	end
 
-	local function assignCustom()
-		for _, slot in model do
-			for item in Present(Clean_Up_Settings.assignments[SlotKey(slot.container, slot.position)]) do
-				if counts[item] then
-					assign(slot, item)
-				end
-			end
-		end
-	end
-
-	local function assignSpecial()
-		for key, class in CLASSES do
-			for _, slot in model do
-				if slot.class == key and not slot.item then
-					for _, item in items do
-						if Info(item).class == key and assign(slot, item) then
-							break
-						end
-				    end
-			    end
-			end
-		end
-	end
-
-	local function assignRemaining()
-		for _, slot in model do
-			if not slot.class and not slot.item then
-				for _, item in items do
-					if assign(slot, item) then
-						break
-					end
-			    end
-		    end
-		end
-	end
-
 	function CreateModel()
-		model = {}
-		counts = {}
-
+		model, counts = {}, {}
 		for _, container in containers do
-			local class = Class(container)
+			local class = ContainerClass(container)
 			for position = 1, GetContainerNumSlots(container) do
 				local slot = {container=container, position=position, class=class}
 				local item = Item(container, position)
 				if item then
 					local _, count = GetContainerItemInfo(container, position)
-					slot.state = {item=item, count=count}
+					slot.item = item
+					slot.count = count
 					counts[item] = (counts[item] or 0) + count
-				else
-					slot.state = {}
 				end
 				insert(model, slot)
 			end
 		end
-		items = {}
-		for item, _ in counts do
-			tinsert(items, item)
+
+		local free = {}
+		for item, count in counts do
+			local stacks = ceil(count / ItemStack(item))
+			free[item] = stacks
+			if ItemClass(item) then
+				free[ItemClass(item)] = (free[ItemClass(item)] or 0) + stacks
+			end
 		end
-		sort(items, function(a, b) return LT(Info(a).sortKey, Info(b).sortKey) end)
-
-		assignCustom()
-		assignSpecial()
-		assignRemaining()
-	end
-end
-
-do
-	local cache = {}
-	function Class(container)
-		if not cache[container] and container ~= 0 and container ~= BANK_CONTAINER then
-			for name in Present(GetBagName(container)) do		
-				for class, info in CLASSES do
-					for _, itemID in info.containers do
-						if name == GetItemInfo(itemID) then
-							cache[container] = class
-						end
-					end	
+		for _, slot in model do
+			if slot.class and free[slot.class] then
+				free[slot.class] = free[slot.class] - 1
+			end
+			local item = Clean_Up_Settings.assignments[SlotKey(slot.container, slot.position)]
+			if item and (not slot.class or slot.class ~= ItemClass(item)) then
+				free[item] = free[item] - 1
+				if ItemClass(item) then
+					free[ItemClass(item)] = free[ItemClass(item)] - 1
 				end
 			end
 		end
-		return cache[container]
+
+		local items = {}
+		for item in counts do
+			tinsert(items, item)
+		end
+		sort(items, function(a, b) return LT(ItemSortKey(a), ItemSortKey(b)) end)
+
+		for _, slot in model do
+			if Clean_Up_Settings.assignments[SlotKey(slot.container, slot.position)] then
+				for _, item in items do
+					if Clean_Up_Settings.assignments[SlotKey(slot.container, slot.position)] == item and assign(slot, item) then
+						break
+					end
+				end
+			elseif slot.class then
+				for _, item in items do
+					if ItemClass(item) == slot.class and free[item] > 0 and assign(slot, item) then
+						free[item] = free[item] - 1
+						break
+					end
+				end
+			else
+				for _, item in items do
+					if free[item] > 0 and (not ItemClass(item) or free[ItemClass(item)] > 0) and assign(slot, item) then
+						free[item] = free[item] - 1
+						if ItemClass(item) then
+							free[ItemClass(item)] = free[ItemClass(item)] - 1
+						end
+						break
+					end
+				end
+			end
+		end
+	end
+end
+
+function ContainerClass(container)
+	if container ~= 0 and container ~= BANK_CONTAINER then
+		for name in Present(GetBagName(container)) do		
+			for class, info in CLASSES do
+				for _, itemID in info.containers do
+					if name == GetItemInfo(itemID) then
+						return class
+					end
+				end	
+			end
+		end
 	end
 end
 
 do
-	local cache = {}
+	local itemStacks, itemClasses, itemSortKeys = {}, {}, {}
 
-	function Info(item)
-		return setmetatable({}, {__index=cache[item]})
+	function ItemStack(key)
+		return itemStacks[key]
+	end
+
+	function ItemClass(key)
+		return itemClasses[key]
+	end
+
+	function ItemSortKey(key)
+		return itemSortKeys[key]
 	end
 
 	function Item(container, position)
@@ -596,86 +612,82 @@ do
 
 			local key = format('%s:%s:%s:%s:%s:%s', itemID, enchantID, suffixID, uniqueID, charges, (soulbound and 1 or 0))
 
-			if not cache[key] then
+			local sortKey = {}
 
-				local sortKey = {}
+			-- hearthstone
+			if itemID == 6948 then
+				tinsert(sortKey, 1)
 
-				-- hearthstone
-				if itemID == 6948 then
-					tinsert(sortKey, 1)
+			-- mounts
+			elseif MOUNT[itemID] then
+				tinsert(sortKey, 2)
 
-				-- mounts
-				elseif MOUNT[itemID] then
-					tinsert(sortKey, 2)
+			-- special items
+			elseif SPECIAL[itemID] then
+				tinsert(sortKey, 3)
 
-				-- special items
-				elseif SPECIAL[itemID] then
-					tinsert(sortKey, 3)
+			-- key items
+			elseif KEY[itemID] then
+				tinsert(sortKey, 4)
 
-				-- key items
-				elseif KEY[itemID] then
-					tinsert(sortKey, 4)
+			-- tools
+			elseif TOOL[itemID] then
+				tinsert(sortKey, 5)
 
-				-- tools
-				elseif TOOL[itemID] then
-					tinsert(sortKey, 5)
+			-- conjured items
+			elseif conjured then
+				tinsert(sortKey, 13)
 
-				-- conjured items
-				elseif conjured then
-					tinsert(sortKey, 13)
+			-- soulbound items
+			elseif soulbound then
+				tinsert(sortKey, 6)
 
-				-- soulbound items
-				elseif soulbound then
-					tinsert(sortKey, 6)
+			-- enchanting reagents
+			elseif ENCHANTING_REAGENT[itemID] then
+				tinsert(sortKey, 7)
 
-				-- enchanting reagents
-				elseif ENCHANTING_REAGENT[itemID] then
-					tinsert(sortKey, 7)
+			-- other reagents
+			elseif type == ITEM_TYPES[9] then
+				tinsert(sortKey, 8)
 
-				-- other reagents
-				elseif type == ITEM_TYPES[9] then
-					tinsert(sortKey, 8)
+			-- quest items
+			elseif quest then
+				tinsert(sortKey, 10)
 
-				-- quest items
-				elseif quest then
-					tinsert(sortKey, 10)
+			-- consumables
+			elseif usable and type ~= ITEM_TYPES[1] and type ~= ITEM_TYPES[2] and type ~= ITEM_TYPES[8] or type == ITEM_TYPES[4] then
+				tinsert(sortKey, 9)
 
-				-- consumables
-				elseif usable and type ~= ITEM_TYPES[1] and type ~= ITEM_TYPES[2] and type ~= ITEM_TYPES[8] or type == ITEM_TYPES[4] then
-					tinsert(sortKey, 9)
+			-- higher quality
+			elseif quality > 1 then
+				tinsert(sortKey, 11)
 
-				-- higher quality
-				elseif quality > 1 then
-					tinsert(sortKey, 11)
+			-- common quality
+			elseif quality == 1 then
+				tinsert(sortKey, 12)
 
-				-- common quality
-				elseif quality == 1 then
-					tinsert(sortKey, 12)
+			-- junk
+			elseif quality == 0 then
+				tinsert(sortKey, 13)
+			end
+			
+			tinsert(sortKey, ItemTypeKey(type))
+			tinsert(sortKey, ItemInvTypeKey(type, subType, invType))
+			tinsert(sortKey, ItemSubTypeKey(type, subType))
+			tinsert(sortKey, -quality)
+			tinsert(sortKey, itemID)
+			tinsert(sortKey, (Clean_Up_Settings.reversed and 1 or -1) * charges)
+			tinsert(sortKey, suffixID)
+			tinsert(sortKey, enchantID)
+			tinsert(sortKey, uniqueID)
 
-				-- junk
-				elseif quality == 0 then
-					tinsert(sortKey, 13)
-				end
-				
-				tinsert(sortKey, ItemTypeKey(type))
-				tinsert(sortKey, ItemInvTypeKey(type, subType, invType))
-				tinsert(sortKey, ItemSubTypeKey(type, subType))
-				tinsert(sortKey, -quality)
-				tinsert(sortKey, itemID)
-				tinsert(sortKey, -charges)
-				tinsert(sortKey, suffixID)
-				tinsert(sortKey, enchantID)
-				tinsert(sortKey, uniqueID)
+			itemStacks[key] = stack
+			itemSortKeys[key] = sortKey
 
-				cache[key] = {
-					stack = stack,
-					sortKey = sortKey,
-				}
-
-				for class, info in CLASSES do
-					if info.items[itemID] then
-						cache[key].class = class
-					end
+			for class, info in CLASSES do
+				if info.items[itemID] then
+					itemClasses[key] = class
+					break
 				end
 			end
 
