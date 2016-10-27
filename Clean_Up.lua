@@ -546,13 +546,8 @@ do
 		sort(items, function(a, b) return LT(ItemSortKey(a), ItemSortKey(b)) end)
 
 		for _, slot in model do
-			if Clean_Up_Settings.assignments[SlotKey(slot.container, slot.position)] then
-				for _, item in items do
-					if Clean_Up_Settings.assignments[SlotKey(slot.container, slot.position)] == item and assign(slot, item) then
-						break
-					end
-				end
-			elseif slot.class then
+			local item = Clean_Up_Settings.assignments[SlotKey(slot.container, slot.position)]
+			if not (item and assign(slot, item)) and slot.class then
 				for _, item in items do
 					if ItemClass(item) == slot.class and free[item] > 0 and assign(slot, item) then
 						free[item] = free[item] - 1
