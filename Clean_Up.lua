@@ -547,21 +547,23 @@ do
 
 		for _, slot in model do
 			local item = Clean_Up_Settings.assignments[SlotKey(slot.container, slot.position)]
-			if not (item and assign(slot, item)) and slot.class then
-				for _, item in items do
-					if ItemClass(item) == slot.class and free[item] > 0 and assign(slot, item) then
-						free[item] = free[item] - 1
-						break
-					end
-				end
-			else
-				for _, item in items do
-					if free[item] > 0 and (not ItemClass(item) or free[ItemClass(item)] > 0) and assign(slot, item) then
-						free[item] = free[item] - 1
-						if ItemClass(item) then
-							free[ItemClass(item)] = free[ItemClass(item)] - 1
+			if not (item and assign(slot, item)) then
+				if slot.class then
+					for _, item in items do
+						if ItemClass(item) == slot.class and free[item] > 0 and assign(slot, item) then
+							free[item] = free[item] - 1
+							break
 						end
-						break
+					end
+				else
+					for _, item in items do
+						if free[item] > 0 and (not ItemClass(item) or free[ItemClass(item)] > 0) and assign(slot, item) then
+							free[item] = free[item] - 1
+							if ItemClass(item) then
+								free[ItemClass(item)] = free[ItemClass(item)] - 1
+							end
+							break
+						end
 					end
 				end
 			end
