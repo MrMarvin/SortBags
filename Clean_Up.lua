@@ -1,7 +1,18 @@
 local _G, _M, _F = getfenv(0), {}, CreateFrame'Frame'
 setfenv(1, setmetatable(_M, {__index=_G}))
 _F:Hide()
-_F:SetScript('OnUpdate', function() _M.UPDATE() end)
+
+do
+	local delay = 0
+	_F:SetScript('OnUpdate', function()
+		delay = delay - arg1
+		if delay <= 0 then
+			delay = .2
+			UPDATE()
+		end
+	end)
+end
+
 _F:SetScript('OnEvent', function() _M[event](this) end)
 for _, event in {'ADDON_LOADED', 'MERCHANT_SHOW', 'MERCHANT_CLOSED'} do
 	_F:RegisterEvent(event)
@@ -195,6 +206,7 @@ function MERCHANT_CLOSED()
 	atMerchant = false
 end
 
+local itemStacks, itemClasses, itemSortKeys = {}, {}, {}
 _F:SetScript('OnShow', function()
 	itemStacks, itemClasses, itemSortKeys = {}, {}, {}
 	CreateModel()
@@ -382,7 +394,7 @@ function Move(src, dst)
 		PickupContainerItem(dst.container, dst.position)
 
 		if src.item == dst.item then
-			local count = min(src.count, ItemStack(dst.item) - dst.count)
+			local count = min(src.count, itemStacks[dst.item] - dst.count)
 			src.count = src.count - count
 			dst.count = dst.count + count
 			if src.count == 0 then
@@ -442,7 +454,7 @@ function Sort()
 			for _, src in model do
 				if src.item == dst.targetItem
 					and src ~= dst
-					and not (dst.item and src.class and src.class ~= ItemClass(dst.item))
+					and not (dst.item and src.class and src.class ~= itemClasses[dst.item])
 					and not (src.targetItem and src.item == src.targetItem and src.count <= src.targetCount)
 				then
 					rank[src] = abs(src.count - dst.targetCount + (dst.item == dst.targetItem and dst.count or 0))
@@ -465,9 +477,9 @@ end
 
 function Stack()
 	for _, src in model do
-		if src.item and src.count < ItemStack(src.item) and src.item ~= src.targetItem then
+		if src.item and src.count < itemStacks[src.item] and src.item ~= src.targetItem then
 			for _, dst in model do
-				if dst ~= src and dst.item and dst.item == src.item and dst.count < ItemStack(dst.item) and dst.item ~= dst.targetItem then
+				if dst ~= src and dst.item and dst.item == src.item and dst.count < itemStacks[dst.item] and dst.item ~= dst.targetItem then
 					Move(src, dst)
 				end
 			end
@@ -489,10 +501,10 @@ do
 	local function assign(slot, item)
 		if counts[item] > 0 then
 			local count
-			if Clean_Up_Settings.reversed and mod(counts[item], ItemStack(item)) ~= 0 then
-				count = mod(counts[item], ItemStack(item))
+			if Clean_Up_Settings.reversed and mod(counts[item], itemStacks[item]) ~= 0 then
+				count = mod(counts[item], itemStacks[item])
 			else
-				count = min(counts[item], ItemStack(item))
+				count = min(counts[item], itemStacks[item])
 			end
 			slot.targetItem = item
 			slot.targetCount = count
@@ -520,10 +532,10 @@ do
 
 		local free = {}
 		for item, count in counts do
-			local stacks = ceil(count / ItemStack(item))
+			local stacks = ceil(count / itemStacks[item])
 			free[item] = stacks
-			if ItemClass(item) then
-				free[ItemClass(item)] = (free[ItemClass(item)] or 0) + stacks
+			if itemClasses[item] then
+				free[itemClasses[item]] = (free[itemClasses[item]] or 0) + stacks
 			end
 		end
 		for _, slot in model do
@@ -531,10 +543,10 @@ do
 				free[slot.class] = free[slot.class] - 1
 			end
 			local item = Clean_Up_Settings.assignments[SlotKey(slot.container, slot.position)]
-			if item and (not slot.class or slot.class ~= ItemClass(item)) then
+			if item and (not slot.class or slot.class ~= itemClasses[item]) then
 				free[item] = free[item] - 1
-				if ItemClass(item) then
-					free[ItemClass(item)] = free[ItemClass(item)] - 1
+				if itemClasses[item] then
+					free[itemClasses[item]] = free[itemClasses[item]] - 1
 				end
 			end
 		end
@@ -543,24 +555,24 @@ do
 		for item in counts do
 			tinsert(items, item)
 		end
-		sort(items, function(a, b) return LT(ItemSortKey(a), ItemSortKey(b)) end)
+		sort(items, function(a, b) return LT(itemSortKeys[a], itemSortKeys[b]) end)
 
 		for _, slot in model do
 			local item = Clean_Up_Settings.assignments[SlotKey(slot.container, slot.position)]
 			if not (item and assign(slot, item)) then
 				if slot.class then
 					for _, item in items do
-						if ItemClass(item) == slot.class and free[item] > 0 and assign(slot, item) then
+						if itemClasses[item] == slot.class and free[item] > 0 and assign(slot, item) then
 							free[item] = free[item] - 1
 							break
 						end
 					end
 				else
 					for _, item in items do
-						if free[item] > 0 and (not ItemClass(item) or free[ItemClass(item)] > 0) and assign(slot, item) then
+						if free[item] > 0 and (not itemClasses[item] or free[itemClasses[item]] > 0) and assign(slot, item) then
 							free[item] = free[item] - 1
-							if ItemClass(item) then
-								free[ItemClass(item)] = free[ItemClass(item)] - 1
+							if itemClasses[item] then
+								free[itemClasses[item]] = free[itemClasses[item]] - 1
 							end
 							break
 						end
@@ -585,108 +597,94 @@ function ContainerClass(container)
 	end
 end
 
-do
-	function ItemStack(key)
-		return itemStacks[key]
-	end
+function Item(container, position)
+	for link in Present(GetContainerItemLink(container, position)) do
+		local _, _, itemID, enchantID, suffixID, uniqueID = strfind(link, 'item:(%d+):(%d*):(%d*):(%d*)')
+		itemID = tonumber(itemID)
+		local _, _, quality, _, type, subType, stack, invType = GetItemInfo(itemID)
+		local charges, usable, soulbound, quest, conjured = TooltipInfo(container, position)
 
-	function ItemClass(key)
-		return itemClasses[key]
-	end
+		local key = format('%s:%s:%s:%s:%s:%s', itemID, enchantID, suffixID, uniqueID, charges, (soulbound and 1 or 0))
 
-	function ItemSortKey(key)
-		return itemSortKeys[key]
-	end
+		local sortKey = {}
 
-	function Item(container, position)
-		for link in Present(GetContainerItemLink(container, position)) do
-			local _, _, itemID, enchantID, suffixID, uniqueID = strfind(link, 'item:(%d+):(%d*):(%d*):(%d*)')
-			itemID = tonumber(itemID)
-			local _, _, quality, _, type, subType, stack, invType = GetItemInfo(itemID)
-			local charges, usable, soulbound, quest, conjured = TooltipInfo(container, position)
+		-- hearthstone
+		if itemID == 6948 then
+			tinsert(sortKey, 1)
 
-			local key = format('%s:%s:%s:%s:%s:%s', itemID, enchantID, suffixID, uniqueID, charges, (soulbound and 1 or 0))
+		-- mounts
+		elseif MOUNT[itemID] then
+			tinsert(sortKey, 2)
 
-			local sortKey = {}
+		-- special items
+		elseif SPECIAL[itemID] then
+			tinsert(sortKey, 3)
 
-			-- hearthstone
-			if itemID == 6948 then
-				tinsert(sortKey, 1)
+		-- key items
+		elseif KEY[itemID] then
+			tinsert(sortKey, 4)
 
-			-- mounts
-			elseif MOUNT[itemID] then
-				tinsert(sortKey, 2)
+		-- tools
+		elseif TOOL[itemID] then
+			tinsert(sortKey, 5)
 
-			-- special items
-			elseif SPECIAL[itemID] then
-				tinsert(sortKey, 3)
+		-- conjured items
+		elseif conjured then
+			tinsert(sortKey, 13)
 
-			-- key items
-			elseif KEY[itemID] then
-				tinsert(sortKey, 4)
+		-- soulbound items
+		elseif soulbound then
+			tinsert(sortKey, 6)
 
-			-- tools
-			elseif TOOL[itemID] then
-				tinsert(sortKey, 5)
+		-- enchanting reagents
+		elseif ENCHANTING_REAGENT[itemID] then
+			tinsert(sortKey, 7)
 
-			-- conjured items
-			elseif conjured then
-				tinsert(sortKey, 13)
+		-- other reagents
+		elseif type == ITEM_TYPES[9] then
+			tinsert(sortKey, 8)
 
-			-- soulbound items
-			elseif soulbound then
-				tinsert(sortKey, 6)
+		-- quest items
+		elseif quest then
+			tinsert(sortKey, 10)
 
-			-- enchanting reagents
-			elseif ENCHANTING_REAGENT[itemID] then
-				tinsert(sortKey, 7)
+		-- consumables
+		elseif usable and type ~= ITEM_TYPES[1] and type ~= ITEM_TYPES[2] and type ~= ITEM_TYPES[8] or type == ITEM_TYPES[4] then
+			tinsert(sortKey, 9)
 
-			-- other reagents
-			elseif type == ITEM_TYPES[9] then
-				tinsert(sortKey, 8)
+		-- higher quality
+		elseif quality > 1 then
+			tinsert(sortKey, 11)
 
-			-- quest items
-			elseif quest then
-				tinsert(sortKey, 10)
+		-- common quality
+		elseif quality == 1 then
+			tinsert(sortKey, 12)
 
-			-- consumables
-			elseif usable and type ~= ITEM_TYPES[1] and type ~= ITEM_TYPES[2] and type ~= ITEM_TYPES[8] or type == ITEM_TYPES[4] then
-				tinsert(sortKey, 9)
-
-			-- higher quality
-			elseif quality > 1 then
-				tinsert(sortKey, 11)
-
-			-- common quality
-			elseif quality == 1 then
-				tinsert(sortKey, 12)
-
-			-- junk
-			elseif quality == 0 then
-				tinsert(sortKey, 13)
-			end
-			
-			tinsert(sortKey, ItemTypeKey(type))
-			tinsert(sortKey, ItemInvTypeKey(type, subType, invType))
-			tinsert(sortKey, ItemSubTypeKey(type, subType))
-			tinsert(sortKey, -quality)
-			tinsert(sortKey, itemID)
-			tinsert(sortKey, (Clean_Up_Settings.reversed and 1 or -1) * charges)
-			tinsert(sortKey, suffixID)
-			tinsert(sortKey, enchantID)
-			tinsert(sortKey, uniqueID)
-
-			itemStacks[key] = stack
-			itemSortKeys[key] = sortKey
-
-			for class, info in CLASSES do
-				if info.items[itemID] then
-					itemClasses[key] = class
-					break
-				end
-			end
-
-			return key
+		-- junk
+		elseif quality == 0 then
+			tinsert(sortKey, 13)
 		end
+		
+		tinsert(sortKey, ItemTypeKey(type))
+		tinsert(sortKey, ItemInvTypeKey(type, subType, invType))
+		tinsert(sortKey, ItemSubTypeKey(type, subType))
+		tinsert(sortKey, -quality)
+		tinsert(sortKey, itemID)
+		tinsert(sortKey, (Clean_Up_Settings.reversed and 1 or -1) * charges)
+		tinsert(sortKey, suffixID)
+		tinsert(sortKey, enchantID)
+		tinsert(sortKey, uniqueID)
+
+		itemStacks[key] = stack
+		itemSortKeys[key] = sortKey
+
+		for class, info in CLASSES do
+			if info.items[itemID] then
+				itemClasses[key] = class
+				break
+			end
+		end
+
+		return key
 	end
 end
