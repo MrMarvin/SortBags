@@ -628,9 +628,13 @@ function Item(container, position)
 		elseif TOOL[itemID] then
 			tinsert(sortKey, 5)
 
+		-- soul shards
+		elseif itemID == 6265 then
+			tinsert(sortKey, 14)
+
 		-- conjured items
 		elseif conjured then
-			tinsert(sortKey, 13)
+			tinsert(sortKey, 15)
 
 		-- soulbound items
 		elseif soulbound then
