@@ -122,16 +122,26 @@ CLASSES = {
 	},
 }
 
-function ItemTypeKey(itemClass)
-	return Key(ITEM_TYPES, itemClass) or 0
-end
+do
+	local function key(table, value)
+		for k, v in table do
+			if v == value then
+				return k
+			end
+		end
+	end
 
-function ItemSubTypeKey(itemClass, itemSubClass)
-	return Key({GetAuctionItemSubClasses(ItemTypeKey(itemClass))}, itemClass) or 0
-end
+	function ItemTypeKey(itemClass)
+		return key(ITEM_TYPES, itemClass) or 0
+	end
 
-function ItemInvTypeKey(itemClass, itemSubClass, itemSlot)
-	return Key({GetAuctionInvTypes(ItemTypeKey(itemClass), ItemSubTypeKey(itemSubClass))}, itemSlot) or 0
+	function ItemSubTypeKey(itemClass, itemSubClass)
+		return key({GetAuctionItemSubClasses(ItemTypeKey(itemClass))}, itemClass) or 0
+	end
+
+	function ItemInvTypeKey(itemClass, itemSubClass, itemSlot)
+		return key({GetAuctionInvTypes(ItemTypeKey(itemClass), ItemSubTypeKey(itemSubClass))}, itemSlot) or 0
+	end
 end
 
 function ADDON_LOADED()
@@ -205,14 +215,6 @@ function LT(a, b)
 			return false
 		end
 		i = i + 1
-	end
-end
-
-function Key(table, value)
-	for k, v in table do
-		if v == value then
-			return k
-		end
 	end
 end
 
