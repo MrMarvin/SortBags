@@ -38,7 +38,7 @@ end
 
 _G.Clean_Up_Settings = {
 	reversed = false,
-	assignments = {},
+	ignored = {},
 	BAGS = {},
 	BANK = {},
 }
@@ -156,11 +156,9 @@ function ADDON_LOADED()
 		function _G.PickupContainerItem(...)
 			local container, position = unpack(arg)
 			if IsAltKeyDown() then
-				for item in Present(Item(container, position)) do
-					local slotKey = SlotKey(container, position)
-					Clean_Up_Settings.assignments[slotKey] = item
-					Print(slotKey .. ' assigned to ' .. GetContainerItemLink(container, position))
-				end
+				local slotKey = SlotKey(container, position)
+				Clean_Up_Settings.ignored[slotKey] = true
+				Print('Ignoring ' .. slotKey)
 			else
 				orig(unpack(arg))
 			end
@@ -171,11 +169,11 @@ function ADDON_LOADED()
 		local orig = UseContainerItem
 		function _G.UseContainerItem(...)
 			local container, position = unpack(arg)
-			local slot = SlotKey(container, position)
+			local slotKey = SlotKey(container, position)
 			if IsAltKeyDown() then
-				if Clean_Up_Settings.assignments[slot] then
-					Clean_Up_Settings.assignments[slot] = nil
-					Print(slot .. ' freed')
+				if Clean_Up_Settings.ignored[slotKey] then
+					Clean_Up_Settings.ignored[slotKey] = nil
+					Print('No longer ignoring ' .. slotKey)
 				end
 			else
 				orig(unpack(arg))
@@ -504,15 +502,17 @@ do
 		for _, container in containers do
 			local class = ContainerClass(container)
 			for position = 1, GetContainerNumSlots(container) do
-				local slot = {container=container, position=position, class=class}
-				local item = Item(container, position)
-				if item then
-					local _, count = GetContainerItemInfo(container, position)
-					slot.item = item
-					slot.count = count
-					counts[item] = (counts[item] or 0) + count
+				if not  Clean_Up_Settings.ignored[SlotKey(container, position)] then
+					local slot = {container=container, position=position, class=class}
+					local item = Item(container, position)
+					if item then
+						local _, count = GetContainerItemInfo(container, position)
+						slot.item = item
+						slot.count = count
+						counts[item] = (counts[item] or 0) + count
+					end
+					insert(model, slot)
 				end
-				insert(model, slot)
 			end
 		end
 
@@ -528,13 +528,6 @@ do
 			if slot.class and free[slot.class] then
 				free[slot.class] = free[slot.class] - 1
 			end
-			local item = Clean_Up_Settings.assignments[SlotKey(slot.container, slot.position)]
-			if item and (not slot.class or slot.class ~= itemClasses[item]) then
-				free[item] = free[item] - 1
-				if itemClasses[item] then
-					free[itemClasses[item]] = free[itemClasses[item]] - 1
-				end
-			end
 		end
 
 		local items = {}
@@ -544,24 +537,19 @@ do
 		sort(items, function(a, b) return LT(itemSortKeys[a], itemSortKeys[b]) end)
 
 		for _, slot in model do
-			local item = Clean_Up_Settings.assignments[SlotKey(slot.container, slot.position)]
-			if not (item and assign(slot, item)) then
-				if slot.class then
-					for _, item in items do
-						if itemClasses[item] == slot.class and free[item] > 0 and assign(slot, item) then
-							free[item] = free[item] - 1
-							break
-						end
+			if slot.class then
+				for _, item in items do
+					if itemClasses[item] == slot.class and assign(slot, item) then
+						break
 					end
-				else
-					for _, item in items do
-						if free[item] > 0 and (not itemClasses[item] or free[itemClasses[item]] > 0) and assign(slot, item) then
-							free[item] = free[item] - 1
-							if itemClasses[item] then
-								free[itemClasses[item]] = free[itemClasses[item]] - 1
-							end
-							break
+				end
+			else
+				for _, item in items do
+					if (not itemClasses[item] or free[itemClasses[item]] > 0) and assign(slot, item) then
+						if itemClasses[item] then
+							free[itemClasses[item]] = free[itemClasses[item]] - 1
 						end
+						break
 					end
 				end
 			end
