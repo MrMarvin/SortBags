@@ -14,9 +14,7 @@ do
 end
 
 _F:SetScript('OnEvent', function() _M[event](this) end)
-for _, event in {'ADDON_LOADED', 'MERCHANT_SHOW', 'MERCHANT_CLOSED'} do
-	_F:RegisterEvent(event)
-end
+_F:RegisterEvent'ADDON_LOADED'
 
 local function set(...)
 	local t = {}
@@ -194,14 +192,6 @@ function UPDATE()
 		_F:Hide()
 	end
 	Stack()
-end
-
-function MERCHANT_SHOW()
-	atMerchant = true
-end
-
-function MERCHANT_CLOSED()
-	atMerchant = false
 end
 
 local itemStacks, itemClasses, itemSortKeys = {}, {}, {}
