@@ -122,16 +122,6 @@ CLASSES = {
 	},
 }
 
-function Present(...)
-	local called
-	return function()
-		if not called then
-			called = true
-			return unpack(arg)
-		end
-	end
-end
-
 function ItemTypeKey(itemClass)
 	return Key(ITEM_TYPES, itemClass) or 0
 end
@@ -549,7 +539,8 @@ end
 
 function ContainerClass(container)
 	if container ~= 0 and container ~= BANK_CONTAINER then
-		for name in Present(GetBagName(container)) do		
+		local name = GetBagName(container)
+		if name then		
 			for class, info in CLASSES do
 				for _, itemID in info.containers do
 					if name == GetItemInfo(itemID) then
@@ -562,7 +553,8 @@ function ContainerClass(container)
 end
 
 function Item(container, position)
-	for link in Present(GetContainerItemLink(container, position)) do
+	local link = GetContainerItemLink(container, position)
+	if link then
 		local _, _, itemID, enchantID, suffixID, uniqueID = strfind(link, 'item:(%d+):(%d*):(%d*):(%d*)')
 		itemID = tonumber(itemID)
 		local _, _, quality, _, type, subType, stack, invType = GetItemInfo(itemID)
