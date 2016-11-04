@@ -1,20 +1,8 @@
-local _G, _M, _F = getfenv(0), {}, CreateFrame'Frame'
+if Clean_Up then return end
+local _G, _M = getfenv(0), {}
 setfenv(1, setmetatable(_M, {__index=_G}))
-_F:Hide()
 
-do
-	local delay = 0
-	_F:SetScript('OnUpdate', function()
-		delay = delay - arg1
-		if delay <= 0 then
-			delay = .2
-			UPDATE()
-		end
-	end)
-end
-
-_F:SetScript('OnEvent', function() _M[event](this) end)
-_F:RegisterEvent'ADDON_LOADED'
+CreateFrame('GameTooltip', 'Clean_Up_Tooltip', nil, 'GameTooltipTemplate')
 
 local function set(...)
 	local t = {}
@@ -34,25 +22,9 @@ local function union(...)
 	return t
 end
 
-_G.Clean_Up_Settings = {
-	reversed = false,
-	ignored = {},
-	BAGS = {},
-	BANK = {},
-}
+local ITEM_TYPES = {GetAuctionItemClasses()}
 
-BAGS = {
-	containers = {0, 1, 2, 3, 4},
-	tooltip = 'Clean Up Bags',
-}
-BANK = {
-	containers = {-1, 5, 6, 7, 8, 9, 10},
-	tooltip = 'Clean Up Bank',
-}
-
-ITEM_TYPES = {GetAuctionItemClasses()}
-
-MOUNT = set(
+local MOUNT = set(
 	-- rams
 	5864, 5872, 5873, 18785, 18786, 18787, 18244, 19030, 13328, 13329,
 	-- horses
@@ -73,13 +45,13 @@ MOUNT = set(
 	21218, 21321, 21323, 21324, 21176
 )
 
-SPECIAL = set(5462, 17696, 17117, 13347, 13289, 11511)
+local SPECIAL = set(5462, 17696, 17117, 13347, 13289, 11511)
 
-KEY = set(9240, 17191, 13544, 12324, 16309, 12384, 20402)
+local KEY = set(9240, 17191, 13544, 12324, 16309, 12384, 20402)
 
-TOOL = set(7005, 12709, 19727, 5956, 2901, 6219, 10498, 6218, 6339, 11130, 11145, 16207, 9149, 15846, 6256, 6365, 6367)
+local TOOL = set(7005, 12709, 19727, 5956, 2901, 6219, 10498, 6218, 6339, 11130, 11145, 16207, 9149, 15846, 6256, 6365, 6367)
 
-ENCHANTING_REAGENT = set(
+local ENCHANTING_REAGENT = set(
 	-- dust
 	10940, 11083, 11137, 11176, 16204,
 	-- essence
@@ -90,7 +62,7 @@ ENCHANTING_REAGENT = set(
 	20725
 )
 
-CLASSES = {
+local CLASSES = {
 	-- arrow
 	{
 		containers = {2101, 5439, 7278, 11362, 3573, 3605, 7371, 8217, 2662, 19319, 18714},
@@ -122,6 +94,43 @@ CLASSES = {
 	},
 }
 
+local model, itemStacks, itemClasses, itemSortKeys
+
+do
+	local f = CreateFrame'Frame'
+	f:Hide()
+
+	function _G.Clean_Up(containers, reverse, ...)
+		if containers == 'bags' then
+			CONTAINERS = {0, 1, 2, 3, 4}
+		elseif containers == 'bank' then
+			CONTAINERS = {-1, 5, 6, 7, 8, 9, 10}
+		end
+		REVERSE = reverse
+		IGNORED = {}
+		for i = 1, arg.n do
+			IGNORED[arg[i]] = true
+		end
+		Initialize()
+		f:Show()
+	end
+
+	local delay = 0
+	f:SetScript('OnUpdate', function()
+		delay = delay - arg1
+		if delay <= 0 then
+			delay = .2
+
+			local complete = Sort()
+			if complete then
+				f:Hide()
+				return
+			end
+			Stack()
+		end
+	end)
+end
+
 do
 	local function key(table, value)
 		for k, v in table do
@@ -144,66 +153,6 @@ do
 	end
 end
 
-function ADDON_LOADED()
-	if arg1 ~= 'Clean_Up' then
-		return
-	end
-
-	do
-		local orig = PickupContainerItem
-		function _G.PickupContainerItem(...)
-			local container, position = unpack(arg)
-			if IsAltKeyDown() then
-				local slotKey = SlotKey(container, position)
-				Clean_Up_Settings.ignored[slotKey] = true
-				Print('Ignoring ' .. slotKey)
-			else
-				orig(unpack(arg))
-			end
-		end
-	end
-    do
-        local lastTime, lastSlot
-		local orig = UseContainerItem
-		function _G.UseContainerItem(...)
-			local container, position = unpack(arg)
-			local slotKey = SlotKey(container, position)
-			if IsAltKeyDown() then
-				if Clean_Up_Settings.ignored[slotKey] then
-					Clean_Up_Settings.ignored[slotKey] = nil
-					Print('No longer ignoring ' .. slotKey)
-				end
-			else
-				orig(unpack(arg))
-			end
-		end
-	end
-
-	SetupSlash()
-
-	CreateFrame('GameTooltip', 'Clean_Up_Tooltip', nil, 'GameTooltipTemplate')
-	CreateButtonPlacer()
-	CreateButton'BAGS'
-	CreateButton'BANK'
-end
-
-function UPDATE()
-	if Sort() then
-		_F:Hide()
-	end
-	Stack()
-end
-
-local itemStacks, itemClasses, itemSortKeys = {}, {}, {}
-_F:SetScript('OnShow', function()
-	itemStacks, itemClasses, itemSortKeys = {}, {}, {}
-	CreateModel()
-end)
-
-function Print(msg)
-	DEFAULT_CHAT_FRAME:AddMessage(LIGHTYELLOW_FONT_COLOR_CODE .. '[Clean Up] ' .. msg)
-end
-
 function LT(a, b)
 	local i = 1
 	while true do
@@ -216,138 +165,6 @@ function LT(a, b)
 		end
 		i = i + 1
 	end
-end
-
-function SlotKey(container, position)
-	return container .. ':' .. position
-end
-
-function SetupSlash()
-  	_G.SLASH_CLEANUPBAGS1 = '/cleanupbags'
-	function _G.SlashCmdList.CLEANUPBAGS(arg)
-		buttonPlacer.key = 'BAGS'
-		buttonPlacer:Show()
-	end
-
-	_G.SLASH_CLEANUPBANK1 = '/cleanupbank'
-	function _G.SlashCmdList.CLEANUPBANK(arg)
-		buttonPlacer.key = 'BANK'
-		buttonPlacer:Show()
-	end
-
-    _G.SLASH_CLEANUPREVERSE1 = '/cleanupreverse'
-    function _G.SlashCmdList.CLEANUPREVERSE(arg)
-        Clean_Up_Settings.reversed = not Clean_Up_Settings.reversed
-        Print('Sort order: ' .. (Clean_Up_Settings.reversed and 'Reversed' or 'Standard'))
-	end
-end
-
-function BrushButton(parent)
-	local button = CreateFrame('Button', nil, parent)
-	button:SetWidth(28)
-	button:SetHeight(26)
-	button:SetNormalTexture[[Interface\AddOns\Clean_Up\Bags]]
-	button:GetNormalTexture():SetTexCoord(.12109375, .23046875, .7265625, .9296875)
-	button:SetPushedTexture[[Interface\AddOns\Clean_Up\Bags]]
-	button:GetPushedTexture():SetTexCoord(.00390625, .11328125, .7265625, .9296875)
-	button:SetHighlightTexture[[Interface\Buttons\ButtonHilight-Square]]
-	button:GetHighlightTexture():ClearAllPoints()
-	button:GetHighlightTexture():SetPoint('CENTER', 0, 0)
-	button:GetHighlightTexture():SetWidth(24)
-	button:GetHighlightTexture():SetHeight(23)
-	return button
-end
-
-function CreateButton(key)
-	local settings = Clean_Up_Settings[key]
-	local button = BrushButton()
-	_M[key].button = button
-	button:SetScript('OnUpdate', function()
-		if settings.parent and getglobal(settings.parent) then
-			UpdateButton(key)
-			this:SetScript('OnUpdate', nil)
-		end
-	end)
-	button:SetScript('OnClick', function()
-		PlaySoundFile[[Interface\AddOns\Clean_Up\UI_BagSorting_01.ogg]]
-		containers = _M[key].containers
-		_F:Show()
-	end)
-	button:SetScript('OnEnter', function()
-		GameTooltip:SetOwner(this)
-		GameTooltip:AddLine(_M[key].tooltip)
-		GameTooltip:Show()
-	end)
-	button:SetScript('OnLeave', function()
-		GameTooltip:Hide()
-	end)
-end
-
-function UpdateButton(key)
-	local button, settings = _M[key].button, Clean_Up_Settings[key]
-	button:SetParent(settings.parent)
-	button:SetPoint('CENTER', unpack(settings.position))
-	button:SetScale(settings.scale)
-	button:Show()
-end
-
-function CreateButtonPlacer()
-	local frame = CreateFrame('EditBox', nil, UIParent)
-	buttonPlacer = frame
-	frame:EnableMouseWheel(true)
-	frame:SetTextColor(0, 0, 0, 0)
-	frame:SetFrameStrata'FULLSCREEN_DIALOG'
-	frame:SetAllPoints()
-	frame:Hide()
-	local targetMarker = frame:CreateTexture()
-	targetMarker:SetTexture(1, 1, 0, .5)
-
-	local buttonPreview = BrushButton(frame)
-	buttonPreview:EnableMouse(false)
-	buttonPreview:SetAlpha(.5)
-
-	function TargetNext()
-		local f = frame.target
-		while true do
-			f = EnumerateFrames(f)
-			if f and f:GetName() and f:GetCenter() then
-				local scale, x, y = f:GetEffectiveScale(), GetCursorPosition()
-				if f:GetLeft() * scale <= x and f:GetRight() * scale >= x and f:GetBottom() * scale <= y and f:GetTop() * scale >= y then
-					frame.target = f
-					targetMarker:SetAllPoints(f)
-					buttonPreview:SetScale(scale * this.scale)
-					RaidWarningFrame:AddMessage(f:GetName())
-					return f
-				end
-			end
-		end
-	end
-
-	frame:SetScript('OnShow', function()
-		this.scale = 1
-		this.target = nil
-		TargetNext()
-	end)
-	frame:SetScript('OnEscapePressed', function() this:Hide() end)
-	frame:SetScript('OnMouseWheel', function()
-		this.scale = max(0, this.scale + arg1 * .05)
-		buttonPreview:SetScale(this.target:GetEffectiveScale() * this.scale)
-	end)
-	frame:SetScript('OnMouseDown', function()
-		if arg1 == 'LeftButton' then
-			this:Hide()
-			local x, y = GetCursorPosition()
-			local targetScale, targetX, targetY = this.target:GetEffectiveScale(), this.target:GetCenter()
-			Clean_Up_Settings[this.key] = {parent=this.target:GetName(), position={(x/targetScale-targetX)/this.scale, (y/targetScale-targetY)/this.scale}, scale=this.scale}
-			UpdateButton(this.key)
-		elseif arg1 == 'RightButton' then
-			this.target = TargetNext(this.target)
-		end
-	end)
-	frame:SetScript('OnUpdate', function()
-		local scale, x, y = buttonPreview:GetEffectiveScale(), GetCursorPosition()
-		buttonPreview:SetPoint('CENTER', UIParent, 'BOTTOMLEFT', x/scale, y/scale)
-	end)
 end
 
 function Move(src, dst)
@@ -457,7 +274,7 @@ do
 	local counts
 
 	local function insert(t, v)
-		if Clean_Up_Settings.reversed then
+		if REVERSE then
 			tinsert(t, v)
 		else
 			tinsert(t, 1, v)
@@ -467,7 +284,7 @@ do
 	local function assign(slot, item)
 		if counts[item] > 0 then
 			local count
-			if Clean_Up_Settings.reversed and mod(counts[item], itemStacks[item]) ~= 0 then
+			if REVERSE and mod(counts[item], itemStacks[item]) ~= 0 then
 				count = mod(counts[item], itemStacks[item])
 			else
 				count = min(counts[item], itemStacks[item])
@@ -479,12 +296,13 @@ do
 		end
 	end
 
-	function CreateModel()
-		model, counts = {}, {}
-		for _, container in containers do
+	function Initialize()
+		model, counts, itemStacks, itemClasses, itemSortKeys = {}, {}, {}, {}, {}
+
+		for _, container in CONTAINERS do
 			local class = ContainerClass(container)
 			for position = 1, GetContainerNumSlots(container) do
-				if not  Clean_Up_Settings.ignored[SlotKey(container, position)] then
+				if not IGNORED[container .. ',' .. position] then
 					local slot = {container=container, position=position, class=class}
 					local item = Item(container, position)
 					if item then
@@ -562,8 +380,6 @@ function Item(container, position)
 		local _, _, quality, _, type, subType, stack, invType = GetItemInfo(itemID)
 		local charges, usable, soulbound, quest, conjured = TooltipInfo(container, position)
 
-		local key = format('%s:%s:%s:%s:%s:%s', itemID, enchantID, suffixID, uniqueID, charges, (soulbound and 1 or 0))
-
 		local sortKey = {}
 
 		-- hearthstone
@@ -632,10 +448,12 @@ function Item(container, position)
 		tinsert(sortKey, ItemSubTypeKey(type, subType))
 		tinsert(sortKey, -quality)
 		tinsert(sortKey, itemID)
-		tinsert(sortKey, (Clean_Up_Settings.reversed and 1 or -1) * charges)
+		tinsert(sortKey, (REVERSE and 1 or -1) * charges)
 		tinsert(sortKey, suffixID)
 		tinsert(sortKey, enchantID)
 		tinsert(sortKey, uniqueID)
+
+		local key = format('%s:%s:%s:%s:%s:%s', itemID, enchantID, suffixID, uniqueID, charges, (soulbound and 1 or 0))
 
 		itemStacks[key] = stack
 		itemSortKeys[key] = sortKey
