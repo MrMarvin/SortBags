@@ -1,3 +1,7 @@
+-- Usage: Clean_Up(containers, [reverse])
+-- Containers for bags: {0, 1, 2, 3, 4}
+-- Containers for bank: {-1, 5, 6, 7, 8, 9, 10}
+
 if Clean_Up then return end
 local _G, _M = getfenv(0), {}
 setfenv(1, setmetatable(_M, {__index=_G}))
@@ -100,17 +104,9 @@ do
 	local f = CreateFrame'Frame'
 	f:Hide()
 
-	function _G.Clean_Up(containers, reverse, ...)
-		if containers == 'bags' then
-			CONTAINERS = {0, 1, 2, 3, 4}
-		elseif containers == 'bank' then
-			CONTAINERS = {-1, 5, 6, 7, 8, 9, 10}
-		end
+	function _G.Clean_Up(containers, reverse)
+		CONTAINERS = containers
 		REVERSE = reverse
-		IGNORED = {}
-		for i = 1, arg.n do
-			IGNORED[arg[i]] = true
-		end
 		Initialize()
 		f:Show()
 	end
@@ -302,17 +298,15 @@ do
 		for _, container in CONTAINERS do
 			local class = ContainerClass(container)
 			for position = 1, GetContainerNumSlots(container) do
-				if not IGNORED[container .. ',' .. position] then
-					local slot = {container=container, position=position, class=class}
-					local item = Item(container, position)
-					if item then
-						local _, count = GetContainerItemInfo(container, position)
-						slot.item = item
-						slot.count = count
-						counts[item] = (counts[item] or 0) + count
-					end
-					insert(model, slot)
+				local slot = {container=container, position=position, class=class}
+				local item = Item(container, position)
+				if item then
+					local _, count = GetContainerItemInfo(container, position)
+					slot.item = item
+					slot.count = count
+					counts[item] = (counts[item] or 0) + count
 				end
+				insert(model, slot)
 			end
 		end
 
