@@ -25,7 +25,8 @@ end
 
 local function set(...)
 	local t = {}
-	for i = 1, arg.n do
+	local arg = {...}
+	for i = 1, #arg do
 		t[arg[i]] = true
 	end
 	return t
@@ -33,8 +34,9 @@ end
 
 local function union(...)
 	local t = {}
-	for i = 1, arg.n do
-		for k in arg[i] do
+	local arg = {...}
+	for i = 1, #arg do
+		for k in pairs(arg[i]) do
 			t[k] = true
 		end
 	end
@@ -150,7 +152,7 @@ end
 
 do
 	local function key(table, value)
-		for k, v in table do
+		for k, v in pairs(table or {}) do
 			if v == value then
 				return k
 			end
@@ -210,7 +212,7 @@ function Move(src, dst)
 end
 
 function TooltipInfo(container, position)
-	local chargesPattern = '^' .. gsub(gsub(ITEM_SPELL_CHARGES_P1, '%%d', '(%%d+)'), '%%%d+%$d', '(%%d+)') .. '$'
+	local chargesPattern = '^' .. gsub(gsub(ITEM_SPELL_CHARGES_P1 or ITEM_SPELL_CHARGES, '%%d', '(%%d+)'), '%%%d+%$d', '(%%d+)') .. '$'
 
 	SortBagsTooltip:SetOwner(UIParent, 'ANCHOR_NONE')
 	SortBagsTooltip:ClearLines()
@@ -245,13 +247,13 @@ end
 function Sort()
 	local complete = true
 
-	for _, dst in model do
+	for _, dst in pairs(model or {}) do
 		if dst.targetItem and (dst.item ~= dst.targetItem or dst.count < dst.targetCount) then
 			complete = false
 
 			local sources, rank = {}, {}
 
-			for _, src in model do
+			for _, src in pairs(model or {}) do
 				if src.item == dst.targetItem
 					and src ~= dst
 					and not (dst.item and src.class and src.class ~= itemClasses[dst.item])
@@ -264,7 +266,7 @@ function Sort()
 
 			sort(sources, function(a, b) return rank[a] < rank[b] end)
 
-			for _, src in sources do
+			for _, src in pairs(sources or {}) do
 				if Move(src, dst) then
 					break
 				end
@@ -276,9 +278,9 @@ function Sort()
 end
 
 function Stack()
-	for _, src in model do
+	for _, src in pairs(model or {}) do
 		if src.item and src.count < itemStacks[src.item] and src.item ~= src.targetItem then
-			for _, dst in model do
+			for _, dst in pairs(model or {}) do
 				if dst ~= src and dst.item and dst.item == src.item and dst.count < itemStacks[dst.item] and dst.item ~= dst.targetItem then
 					Move(src, dst)
 				end
@@ -316,7 +318,7 @@ do
 	function Initialize()
 		model, counts, itemStacks, itemClasses, itemSortKeys = {}, {}, {}, {}, {}
 
-		for _, container in CONTAINERS do
+		for _, container in pairs(CONTAINERS or {}) do
 			local class = ContainerClass(container)
 			for position = 1, GetContainerNumSlots(container) do
 				local slot = {container=container, position=position, class=class}
@@ -332,34 +334,34 @@ do
 		end
 
 		local free = {}
-		for item, count in counts do
+		for item, count in pairs(counts or {}) do
 			local stacks = ceil(count / itemStacks[item])
 			free[item] = stacks
 			if itemClasses[item] then
 				free[itemClasses[item]] = (free[itemClasses[item]] or 0) + stacks
 			end
 		end
-		for _, slot in model do
+		for _, slot in pairs(model or {}) do
 			if slot.class and free[slot.class] then
 				free[slot.class] = free[slot.class] - 1
 			end
 		end
 
 		local items = {}
-		for item in counts do
+		for item in pairs(counts or {}) do
 			tinsert(items, item)
 		end
 		sort(items, function(a, b) return LT(itemSortKeys[a], itemSortKeys[b]) end)
 
-		for _, slot in model do
+		for _, slot in pairs(model or {}) do
 			if slot.class then
-				for _, item in items do
+				for _, item in pairs(items or {}) do
 					if itemClasses[item] == slot.class and assign(slot, item) then
 						break
 					end
 				end
 			else
-				for _, item in items do
+				for _, item in pairs(items or {}) do
 					if (not itemClasses[item] or free[itemClasses[item]] > 0) and assign(slot, item) then
 						if itemClasses[item] then
 							free[itemClasses[item]] = free[itemClasses[item]] - 1
@@ -376,8 +378,8 @@ function ContainerClass(container)
 	if container ~= 0 and container ~= BANK_CONTAINER then
 		local name = GetBagName(container)
 		if name then		
-			for class, info in CLASSES do
-				for _, itemID in info.containers do
+			for class, info in pairs(CLASSES or {}) do
+				for _, itemID in pairs(info.containers or {}) do
 					if name == GetItemInfo(itemID) then
 						return class
 					end
@@ -392,7 +394,7 @@ function Item(container, position)
 	if link then
 		local _, _, itemID, enchantID, suffixID, uniqueID = strfind(link, 'item:(%d+):(%d*):(%d*):(%d*)')
 		itemID = tonumber(itemID)
-		local _, _, quality, _, type, subType, stack, invType = GetItemInfo(itemID)
+		local _, _, quality, _, _, type, subType, stack, invType, _ = GetItemInfo(itemID)
 		local charges, usable, soulbound, quest, conjured = TooltipInfo(container, position)
 
 		local sortKey = {}
@@ -477,7 +479,7 @@ function Item(container, position)
 		itemStacks[key] = stack
 		itemSortKeys[key] = sortKey
 
-		for class, info in CLASSES do
+		for class, info in pairs(CLASSES or {}) do
 			if info.items[itemID] then
 				itemClasses[key] = class
 				break
